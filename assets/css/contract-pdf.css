@@ -1,0 +1,120 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Tahoma, sans-serif;
+  margin: 20px;
+  direction: rtl;
+  color: #000;
+}
+
+.container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.contract-box {
+  border: 2px solid #000;
+  padding: 20px;
+}
+
+.header-top table {
+  width: 100%;
+  border: none;
+  border-collapse: collapse;
+}
+
+.header-top td {
+  border: none;
+  vertical-align: top;
+}
+
+.logo {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.meta-info {
+  font-size: 14px;
+  line-height: 2;
+  text-align: right;
+}
+
+.title-section {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.main-title {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.content {
+  text-align: justify;
+  line-height: 2.5;
+  font-size: 15px;
+  margin: 20px 0;
+}
+
+.content p,
+.terms p,
+.content li {
+  margin: 0 0 8px 0;
+  text-align: justify;
+  line-height: 1.85;
+  font-size: 12px;
+}
+
+.content ol {
+  margin: 8px 0;
+  padding-right: 24px;
+}
+
+.highlight {
+  display: inline-block;
+  min-width: 80px;
+  text-align: center;
+  border-bottom: 1px solid #000;
+  padding: 0 5px;
+}
+
+.terms {
+  margin-top: 20px;
+}
+
+.term-item {
+  text-align: justify;
+  line-height: 2.2;
+  font-size: 14px;
+  margin-bottom: 15px;
+  padding-right: 20px;
+}
+
+table.contract-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-top: 20px;
+  font-size: 12px;
+}
+
+table.contract-table td,
+table.contract-table th {
+  border: 1px solid #000;
+  text-align: center;
+  vertical-align: middle;
+  padding: 6px;
+  word-wrap: break-word;
+}
+
+@media print {
+  body {
+    margin: 0;
+  }
+}

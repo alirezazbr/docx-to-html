@@ -1,210 +1,118 @@
-@font-face{
- font-family:'B Nazanin';
- src:url('../fonts/B-NAZANIN.TTF') format('truetype');
- font-weight:normal;
- font-style:normal;
- font-display:swap;
+@font-face {
+  font-family: 'B Nazanin';
+  src: url('../fonts/B-NAZANIN.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-@page{
- size:A4;
+@page {
+  size: A4;
 }
 
-html{
- direction:rtl;
- font-family:'B Nazanin',Tahoma,sans-serif;
-}
-
-body,
-body *,
-.docx-content,
-.docx-content *{
- font-family:inherit;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'B Nazanin', Tahoma, sans-serif;
 }
 
 html,
-body{
- margin:0;
- padding:0;
- width:100%;
- -webkit-print-color-adjust:exact;
- print-color-adjust:exact;
+body {
+  direction: rtl;
+  background-color: #fff;
 }
 
-body{
- display:flex;
- justify-content:center;
- background:#e8e8e8;
+body {
+  margin: 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
-.page{
- position:relative;
- width:210mm;
- max-width:100%;
- min-height:297mm;
- margin:0 auto;
- padding:15mm;
- box-sizing:border-box;
- background:#fff;
+.container {
+  border: 2px solid #000;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 900px;
+  background-color: #fff;
 }
 
-/* Header: meta top-right, logo centered */
-.contract-header{
- position:relative;
- min-height:72px;
- margin-bottom:8px;
-}
-.contract-logo{
- text-align:center;
- margin:4px 0 0;
-}
-.contract-logo img{
- display:inline-block;
- max-height:56px;
- width:auto;
- height:auto;
+.title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin: 20px 0;
 }
 
-/* تاریخ & شماره — top right */
-.contract-meta{
- position:absolute;
- top:0;
- right:0;
- text-align:right;
- font-size:11px;
- line-height:1.5;
- font-weight:normal;
-}
-.contract-meta-line + .contract-meta-line{
- margin-top:10px;
+.header-table {
+  width: 100%;
+  border: none;
+  margin-bottom: 10px;
 }
 
-/* Title */
-.contract-title{
- text-align:center;
- font-size:14px;
- font-weight:bold;
- margin:8px 0 14px;
- line-height:1.6;
-}
-.contract-title strong{
- font-weight:bold;
+.header-table td {
+  vertical-align: top;
 }
 
-/* Main content (intro + numbered clauses) */
-.contract-body{
- font-size:12px;
- line-height:1.85;
- font-weight:normal;
-}
-.contract-body p,
-.contract-body li,
-.contract-body ol{
- font-size:12px;
- font-weight:normal;
-}
-.contract-body p{
- margin:0.35em 0;
-}
-.contract-body ol{
- margin:0.5em 0;
- padding-right:1.5em;
+.logo img {
+  width: 100px;
+  height: 100px;
 }
 
-/* توضیحات section */
-.contract-notes{
- font-size:10px;
- line-height:1.75;
- font-weight:normal;
- margin-top:12px;
-}
-.contract-notes-title,
-.contract-notes-title strong{
- font-size:10px;
- font-weight:bold;
- margin:0 0 6px;
-}
-.contract-notes p:not(.contract-notes-title){
- font-size:10px;
- font-weight:normal;
- margin:0.3em 0;
+.header-info {
+  font-size: 14px;
+  text-align: right;
+  line-height: 2;
 }
 
-/* Table */
-.contract-table-wrap{
- margin:10px 0;
- width:100%;
- overflow:visible;
-}
-.contract-table{
- width:100%;
- max-width:100%;
- table-layout:fixed;
- border-collapse:collapse;
- border:1px solid #000;
- font-size:9px;
- font-weight:normal;
- box-sizing:border-box;
-}
-.contract-table td{
- border:1px solid #000;
- padding:4px 5px;
- font-size:9px;
- font-weight:normal;
- vertical-align:middle;
- word-wrap:break-word;
- overflow-wrap:break-word;
- box-sizing:border-box;
-}
-.contract-table p{
- margin:0;
- font-size:9px;
- font-weight:normal;
-}
-.contract-table strong{
- font-weight:normal;
+.content {
+  text-align: justify;
+  line-height: 2.5;
+  font-size: 15px;
+  margin: 20px 0;
 }
 
-/* Header titles + first column (جنسیت) — classes set in decorate-contract-table.js */
-.contract-table td.table-title-cell,
-.contract-table td.table-col-first{
- background-color:#e0e0e0;
+.highlight {
+  min-width: 80px;
+  display: inline-block;
+  text-align: center;
+  border-bottom: 1px solid #000;
+  padding: 0 5px;
 }
 
-/* Text after table (e.g. footnotes) */
-.contract-after-table{
- font-size:10px;
- line-height:1.75;
- font-weight:normal;
-}
-.contract-after-table p{
- font-size:10px;
- font-weight:normal;
- margin:0.3em 0;
+.terms {
+  margin-top: 20px;
 }
 
-@media print{
- body{
-  display:block;
-  background:#fff;
- }
- .page{
-  width:auto;
-  max-width:none;
-  margin:0;
-  padding:0;
-  box-shadow:none;
- }
+.term-item {
+  text-align: justify;
+  line-height: 2.2;
+  font-size: 14px;
+  margin-bottom: 15px;
+  padding-right: 20px;
 }
 
-/* Legacy JSON template helpers */
-.meta{
- display:flex;
- justify-content:space-between;
- font-size:11px;
+table.contract-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 12px;
 }
-h1{
- text-align:center;
- font-size:14px;
- font-weight:bold;
+
+table.contract-table td {
+  border: 1px solid #000;
+  padding: 6px;
+  text-align: center;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .container {
+    margin: 0;
+    max-width: none;
+    border: none;
+  }
 }

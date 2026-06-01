@@ -1,71 +1,51 @@
 const fs = require('fs');
-const { CONTRACT_CSS, CONTRACT_FONT } = require('./paths');
-
-let cachedCss = null;
-
-function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function getEmbeddedCss() {
-  if (cachedCss) return cachedCss;
-
-  let css = fs.readFileSync(CONTRACT_CSS, 'utf8');
-
-  if (fs.existsSync(CONTRACT_FONT)) {
-    const fontBase64 = fs.readFileSync(CONTRACT_FONT).toString('base64');
-    css = css.replace(
-      /url\(['"]?\.\.\/fonts\/[^'")]+['"]?\)\s*format\(['"]truetype['"]\)/i,
-      `url(data:font/ttf;base64,${fontBase64}) format('truetype')`
-    );
-  }
-
-  cachedCss = css;
-  return css;
-}
-
-function buildStandaloneHtml({ body, title }) {
-  const css = getEmbeddedCss();
-  return `<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(title)}</title>
-<style>
-${css}
-</style>
-</head>
-<body>
-${body}
-</body>
-</html>`;
-}
+const path = require('path');
+const { buildContractHtml, wrapContractBody } = require('./pdf-html');
+const { OUTPUT_HTML, OUTPUT_HTML_FRAGMENT } = require('./paths');
 
 function extractBody(html) {
   const match = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
   return match ? match[1].trim() : html;
 }
 
-function extractTitle(html, fallback = 'contract') {
+function extractTitle(html, fallback = 'قرارداد بیمه اصحاب فرهنگ و هنر') {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return match ? match[1].trim() : fallback;
 }
 
-/** Turn any HTML document into a self-contained file (inline CSS + font). */
-function makeStandaloneDocument(html, fallbackTitle = 'contract') {
-  return buildStandaloneHtml({
-    body: extractBody(html),
-    title: extractTitle(html, fallbackTitle),
-  });
+function stripDocumentWrapper(html) {
+  const trimmed = html.trim();
+  if (/^\s*<!DOCTYPE/i.test(trimmed) || /^\s*<html[\s>]/i.test(trimmed)) {
+    return extractBody(html);
+  }
+  return trimmed;
+}
+
+function makeContractOutputs(html, fallbackTitle = 'قرارداد بیمه اصحاب فرهنگ و هنر') {
+  const body = stripDocumentWrapper(html);
+  const title = extractTitle(html, fallbackTitle);
+  const { document, fragment } = buildContractHtml(body, title);
+
+  fs.mkdirSync(path.dirname(OUTPUT_HTML), { recursive: true });
+  fs.writeFileSync(OUTPUT_HTML, document, 'utf8');
+
+  if (process.env.CONTRACT_WRITE_FRAGMENT === '1') {
+    fs.writeFileSync(OUTPUT_HTML_FRAGMENT, fragment, 'utf8');
+  }
+
+  return { document, fragment };
+}
+
+/** @deprecated Use makeContractOutputs — kept as alias */
+function makeStandaloneDocument(html, fallbackTitle) {
+  return makeContractOutputs(html, fallbackTitle).document;
 }
 
 module.exports = {
-  buildStandaloneHtml,
   makeStandaloneDocument,
-  getEmbeddedCss,
+  makeContractOutputs,
+  writeContractOutputs: makeContractOutputs,
+  extractBody,
+  extractTitle,
+  stripDocumentWrapper,
 };

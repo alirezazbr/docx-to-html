@@ -1,12 +1,16 @@
 {
-  "contractNumber": "12345",
-  "date": "1405/03/11",
-  "fullName": "علی رضایی",
-  "fatherName": "محمد",
-  "nationalCode": "1234567890",
-  "insuranceNumber": "55555",
-  "birthDate": "1365/01/01",
-  "mobile": "09121234567",
-  "jobTitle": "نویسنده",
-  "address": "تهران"
+  "logoSrc": "",
+  "letter-number": "12345",
+  "letter-date": "1405/03/11",
+  "branch-code": "001",
+  "insured-name": "علی رضایی",
+  "insured-father-name": "محمد",
+  "insured-national-id": "123",
+  "insured-birth-date": "1365/01/01",
+  "insured-national-code": "1234567890",
+  "insured-insurance-number": "55555",
+  "insured-insurance-experienceDays": "1200",
+  "insured-career": "نویسنده",
+  "contract-number": "98765",
+  "contract-date": "1405/03/01"
 }

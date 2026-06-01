@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const mammoth = require('mammoth');
 const { enhanceDocxHtml } = require('./enhance-docx-html');
-const { DEFAULT_DOCX, OUTPUT_HTML } = require('./lib/paths');
-const { buildStandaloneHtml } = require('./lib/standalone-html');
+const { DEFAULT_DOCX, OUTPUT_HTML, OUTPUT_HTML_FRAGMENT } = require('./lib/paths');
+const { writeContractOutputs } = require('./lib/standalone-html');
 
 function resolveDocxPath(argv) {
   if (process.env.CONTRACT_DOCX) {
@@ -15,21 +15,27 @@ function resolveDocxPath(argv) {
 }
 
 function wrapHtml(body, title) {
-  return buildStandaloneHtml({
-    title,
-    body: `<div class="page docx-content">\n${body}\n</div>`,
-  });
+  return writeContractOutputs(body, title).document;
+}
+
+function convertImage(image) {
+  const logoUrl = process.env.CONTRACT_LOGO_URL;
+  if (logoUrl) {
+    return { src: logoUrl };
+  }
+  if (process.env.CONTRACT_EMBED_IMAGES === '0') {
+    return { src: '' };
+  }
+  return image.read('base64').then((buffer) => ({
+    src: `data:${image.contentType};base64,${buffer}`,
+  }));
 }
 
 async function convertDocxToHtml(docxPath) {
   const result = await mammoth.convertToHtml(
     { path: docxPath },
     {
-      convertImage: mammoth.images.imgElement((image) =>
-        image.read('base64').then((buffer) => ({
-          src: `data:${image.contentType};base64,${buffer}`,
-        }))
-      ),
+      convertImage: mammoth.images.imgElement(convertImage),
     }
   );
 
@@ -48,10 +54,12 @@ async function renderFromDocx(docxPath = DEFAULT_DOCX) {
     );
   }
 
-  const html = await convertDocxToHtml(docxPath);
-  fs.mkdirSync(path.dirname(OUTPUT_HTML), { recursive: true });
-  fs.writeFileSync(OUTPUT_HTML, html, 'utf8');
+  await convertDocxToHtml(docxPath);
   console.log('HTML generated from DOCX:', docxPath);
+  console.log('  PDF HTML:', OUTPUT_HTML);
+  if (process.env.CONTRACT_WRITE_FRAGMENT === '1') {
+    console.log('  fragment:', OUTPUT_HTML_FRAGMENT);
+  }
 }
 
 if (require.main === module) {

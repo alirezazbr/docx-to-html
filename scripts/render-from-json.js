@@ -1,7 +1,7 @@
 const fs = require('fs');
 const Handlebars = require('handlebars');
 const { DEFAULT_JSON, TEMPLATE_HBS, OUTPUT_HTML } = require('./lib/paths');
-const { makeStandaloneDocument } = require('./lib/standalone-html');
+const { writeContractOutputs } = require('./lib/standalone-html');
 
 function renderFromJson(dataPath = DEFAULT_JSON) {
   if (!fs.existsSync(dataPath)) {
@@ -14,10 +14,7 @@ function renderFromJson(dataPath = DEFAULT_JSON) {
   const template = fs.readFileSync(TEMPLATE_HBS, 'utf8');
   const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
   const rawHtml = Handlebars.compile(template)(data);
-  const html = makeStandaloneDocument(rawHtml, 'قرارداد بیمه اصحاب فرهنگ و هنر');
-
-  fs.mkdirSync(require('path').dirname(OUTPUT_HTML), { recursive: true });
-  fs.writeFileSync(OUTPUT_HTML, html, 'utf8');
+  writeContractOutputs(rawHtml, 'قرارداد بیمه اصحاب فرهنگ و هنر');
   console.log('HTML generated from JSON:', dataPath);
 }
 

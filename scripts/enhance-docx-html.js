@@ -1,4 +1,4 @@
-const { decorateContractTable } = require('./decorate-contract-table');
+const { normalizeDocxHtml } = require('./lib/pdf-html');
 
 function parseTopLevelBlocks(html) {
   const blocks = [];
@@ -18,20 +18,26 @@ function stripTags(html) {
   return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 }
 
-function extractLogoAndDate(inner) {
+function extractLogoAndMeta(inner) {
   const imgMatch = inner.match(/<img[^>]*>/i);
-  const logo = imgMatch ? imgMatch[0] : '';
-  const dateInner = imgMatch ? inner.replace(imgMatch[0], '').trim() : inner.trim();
-  return { logo, dateInner };
+  let logo = '';
+  if (imgMatch) {
+    const tag = imgMatch[0];
+    const srcMatch = tag.match(/\bsrc="([^"]*)"/i);
+    const src = srcMatch ? srcMatch[1] : '';
+    logo = `<img src="${src}" alt="لوگو" class="logo"/>`;
+  }
+  const metaInner = imgMatch ? inner.replace(imgMatch[0], '').trim() : inner.trim();
+  return { logo, metaInner };
 }
 
 function enhanceDocxHtml(html) {
   const blocks = parseTopLevelBlocks(html);
   if (blocks.length < 3) {
-    return html;
+    return normalizeDocxHtml(html);
   }
 
-  const { logo, dateInner } = extractLogoAndDate(blocks[0].inner);
+  const { logo, metaInner } = extractLogoAndMeta(blocks[0].inner);
   const numberInner = blocks[1].inner;
   const titleInner = blocks[2].inner;
 
@@ -43,55 +49,63 @@ function enhanceDocxHtml(html) {
   const bodyEnd = notesStart === -1 ? (tableIndex === -1 ? blocks.length : tableIndex) : notesStart;
   const notesEnd = tableIndex === -1 ? blocks.length : tableIndex;
 
-  const bodyHtml = blocks
-    .slice(3, bodyEnd)
-    .map((b) => b.html)
+  const bodyHtml = normalizeDocxHtml(
+    blocks
+      .slice(3, bodyEnd)
+      .map((b) => b.html)
+      .join('\n')
+  );
+
+  const termBlocks =
+    notesStart === -1 ? [] : blocks.slice(notesStart, notesEnd);
+  const termsHtml = termBlocks
+    .map((b, i) => {
+      if (i === 0 && /توضیحات/.test(stripTags(b.inner))) {
+        return '';
+      }
+      return `<div class="term-item">${b.inner}</div>`;
+    })
+    .filter(Boolean)
     .join('\n');
 
-  let notesHtml = '';
-  if (notesStart !== -1) {
-    notesHtml = blocks
-      .slice(notesStart, notesEnd)
-      .map((b, i) => {
-        if (i === 0) {
-          return `<p class="contract-notes-title">${b.inner}</p>`;
-        }
-        return b.html;
-      })
-      .join('\n');
-  }
-
   const tableHtml =
-    tableIndex === -1
-      ? ''
-      : `<div class="contract-table-wrap">${decorateContractTable(
-          blocks[tableIndex].html.replace(/<table>/i, '<table class="contract-table">')
-        )}</div>`;
+    tableIndex === -1 ? '' : normalizeDocxHtml(blocks[tableIndex].html);
 
   const afterTableHtml =
     tableIndex === -1
       ? ''
-      : blocks
-          .slice(tableIndex + 1)
-          .map((b) => b.html)
-          .join('\n');
+      : normalizeDocxHtml(
+          blocks
+            .slice(tableIndex + 1)
+            .map((b) => b.html)
+            .join('\n')
+        );
 
-  const logoBlock = logo ? `<div class="contract-logo">${logo}</div>` : '';
+  const footerHtml = afterTableHtml
+    ? `<div class="content">\n${afterTableHtml}\n</div>`
+    : '';
 
-  return `<div class="contract-header">
-<div class="contract-meta">
-<div class="contract-meta-line">${dateInner}</div>
-<div class="contract-meta-line">${numberInner}</div>
+  return `<div class="header-top">
+<table>
+<tr>
+<td style="width:25%;"></td>
+<td style="width:50%;text-align:center;">${logo}</td>
+<td style="width:25%;" class="meta-info">
+<div>${metaInner}</div>
+<div>${numberInner}</div>
+</td>
+</tr>
+</table>
 </div>
-${logoBlock}
+<div class="title-section">
+<div class="main-title">${titleInner}</div>
 </div>
-<h1 class="contract-title">${titleInner}</h1>
-<div class="contract-body">
+<div class="content">
 ${bodyHtml}
 </div>
-${notesHtml ? `<div class="contract-notes">\n${notesHtml}\n</div>` : ''}
+${termsHtml ? `<div class="terms">\n${termsHtml}\n</div>` : ''}
 ${tableHtml}
-${afterTableHtml ? `<div class="contract-after-table">\n${afterTableHtml}\n</div>` : ''}`;
+${footerHtml}`;
 }
 
 module.exports = { enhanceDocxHtml };

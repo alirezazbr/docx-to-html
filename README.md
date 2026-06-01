@@ -8,15 +8,9 @@ Convert a Word contract to PDF (DOCX → HTML → PDF), or use JSON + Handlebars
 pnpm install
 ```
 
-### Persian font (B Nazanin)
+### Persian font (optional, PDF only)
 
-Copy your font file to:
-
-```
-assets/fonts/B-NAZANIN.TTF
-```
-
-The file name must match exactly. All generated HTML and PDF output uses this font.
+Email HTML uses **Tahoma / Arial** (widely supported in inboxes). For PDF you can still add B Nazanin at `assets/fonts/B-NAZANIN.TTF` if you add print-specific styling later; the default email HTML does not embed web fonts.
 
 ## DOCX workflow (recommended)
 
@@ -46,17 +40,60 @@ pnpm run render:docx -- input/my-contract.docx
 pnpm run pdf
 ```
 
-Outputs: `output/contract.html`, `output/contract.pdf`
+Outputs:
 
-`contract.html` is **standalone** (CSS and B Nazanin font are embedded). You can copy it anywhere and open or print it without the project folder.
+| File | Use |
+|------|-----|
+| `output/contract.html` | **Send this to Tamin `createPdfFile`** (same pattern as `input/sampleWorkingHtml.html`) |
+| `output/contract.pdf` | Local PDF via Puppeteer |
 
-## JSON + Handlebars workflow (legacy)
+### Tamin backend PDF (`contract.html` only)
 
-Edit `data/contract.json` and `templates/contract.hbs`, then:
+Use the **full file** as the HTML argument — same idea as `sampleWorkingHtml.html`:
+
+```text
+createPdfFile(Files.readString("output/contract.html"))
+```
+
+Do **not** wrap it again:
+
+```text
+<!-- WRONG — causes "Invalid nested tag head" -->
+<html><head><meta/></head><body> + contract.html + </body></html>
+```
+
+`contract.html` already has `<!DOCTYPE>`, one `<head>`, one `<meta charset="UTF-8"/>`, and `<style>`.
+
+Check before sending:
+
+```bash
+pnpm run build:docx
+pnpm run validate:pdf
+```
+
+Optional env vars:
+
+- `CONTRACT_LOGO_URL=https://...` — logo URL instead of huge base64
+- `CONTRACT_EMBED_IMAGES=0` — skip embedded images (use with `CONTRACT_LOGO_URL`)
+- `CONTRACT_WRITE_FRAGMENT=1` — also write `contract-fragment.html` (only if your API adds its own `<html>` shell)
+
+## JSON + Handlebars workflow
+
+Edit `data/contract.json` (keys like `letter-number`, `insured-name`) and `templates/contract.hbs`, then:
 
 ```bash
 pnpm run build:json
 ```
+
+## Placeholder template (for another generator)
+
+Static HTML with `{letter-number}`-style tokens and the same simple CSS classes (`container`, `highlight`, `term-item`, …):
+
+```bash
+pnpm run render:placeholder
+```
+
+Source: `templates/contract.placeholder.html`
 
 ## Scripts
 
@@ -65,6 +102,7 @@ pnpm run build:json
 | `pnpm run render` | HTML from DOCX if `input/contract.docx` exists, else JSON |
 | `pnpm run render:docx` | HTML from DOCX only |
 | `pnpm run render:json` | HTML from JSON + template |
+| `pnpm run render:placeholder` | HTML with `{placeholder}` tokens for external tools |
 | `pnpm run pdf` | PDF from `output/contract.html` |
 | `pnpm run build` | render + pdf |
 
