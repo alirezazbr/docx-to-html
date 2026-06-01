@@ -1,0 +1,19 @@
+{
+  "name": "insurance-contract-generator",
+  "version": "1.0.0",
+  "scripts": {
+    "render": "node scripts/render-html.js",
+    "render:docx": "node scripts/render-from-docx.js",
+    "render:json": "node scripts/render-from-json.js",
+    "pdf": "node scripts/generate-pdf.js",
+    "build": "npm run render && npm run pdf",
+    "build:docx": "npm run render:docx && npm run pdf",
+    "build:json": "npm run render:json && npm run pdf",
+    "browser:install": "node scripts/install-browser.js"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8",
+    "mammoth": "^1.9.0",
+    "puppeteer": "^24.0.0"
+  }
+}
