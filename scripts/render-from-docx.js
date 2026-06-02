@@ -18,17 +18,15 @@ function wrapHtml(body, title) {
   return writeContractOutputs(body, title).document;
 }
 
+const { getLogoSrc } = require('./lib/itext-html');
+
 function convertImage(image) {
-  const logoUrl = process.env.CONTRACT_LOGO_URL;
-  if (logoUrl) {
-    return { src: logoUrl };
+  if (process.env.CONTRACT_EMBED_IMAGES === '1') {
+    return image.read('base64').then((buffer) => ({
+      src: `data:${image.contentType};base64,${buffer}`,
+    }));
   }
-  if (process.env.CONTRACT_EMBED_IMAGES === '0') {
-    return { src: '' };
-  }
-  return image.read('base64').then((buffer) => ({
-    src: `data:${image.contentType};base64,${buffer}`,
-  }));
+  return { src: getLogoSrc() };
 }
 
 async function convertDocxToHtml(docxPath) {

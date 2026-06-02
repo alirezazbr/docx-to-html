@@ -1,8 +1,11 @@
 const fs = require('fs');
 const { OUTPUT_HTML } = require('./lib/paths');
 
+const UNSUPPORTED_CSS =
+  /box-sizing|max-width|min-width|object-fit|position:\s*(fixed|absolute)|display:\s*(flex|grid)|@media|transform:|filter:|box-shadow|animation:|transition:/i;
+
 /**
- * Checks output/contract.html for issues that cause Tamin createPdfFile errors.
+ * Validates output/contract.html for iText 5 XMLWorker.
  * Run: pnpm run validate:pdf
  */
 function validatePdfHtml(htmlPath = OUTPUT_HTML) {
@@ -15,77 +18,83 @@ function validatePdfHtml(htmlPath = OUTPUT_HTML) {
   const ok = [];
 
   if (!/^\s*<!DOCTYPE\s+html>/i.test(html)) {
-    issues.push('Missing <!DOCTYPE html> at the start.');
+    issues.push('Missing <!DOCTYPE html>.');
   } else {
-    ok.push('Has <!DOCTYPE html>.');
+    ok.push('<!DOCTYPE html> present.');
+  }
+
+  if (!/<html\s+dir="rtl"\s+lang="fa">/i.test(html)) {
+    issues.push('Expected <html dir="rtl" lang="fa"> for Persian RTL.');
+  } else {
+    ok.push('RTL html root (dir="rtl" lang="fa").');
+  }
+
+  if (/<meta\s+charset="UTF-8"\s*><\/meta>/i.test(html)) {
+    ok.push('XHTML meta charset closing tag.</meta>');
+  } else if (/<meta\s+charset="UTF-8"\s*\/>/i.test(html)) {
+    ok.push('Meta charset present (self-closing).');
+  } else {
+    issues.push('Missing <meta charset="UTF-8"></meta>.');
   }
 
   const headCount = (html.match(/<head\b/gi) || []).length;
-  const headCloseCount = (html.match(/<\/head>/gi) || []).length;
-  if (headCount !== 1 || headCloseCount !== 1) {
-    issues.push(`Expected exactly one <head> (found ${headCount} open, ${headCloseCount} close).`);
+  if (headCount !== 1) {
+    issues.push(`Expected one <head>, found ${headCount}.`);
   } else {
-    ok.push('Exactly one <head> block.');
+    ok.push('Single <head> block.');
   }
 
-  const htmlOpen = (html.match(/<html\b/gi) || []).length;
-  if (htmlOpen !== 1) {
-    issues.push(`Expected one <html> tag, found ${htmlOpen}.`);
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  if (!styleMatch) {
+    issues.push('Missing <style> block.');
+  } else if (UNSUPPORTED_CSS.test(styleMatch[1])) {
+    issues.push('CSS contains iText-unsupported properties (flex, max-width, @media, etc.).');
   } else {
-    ok.push('Exactly one <html> root.');
+    ok.push('CSS uses XMLWorker-safe properties only.');
   }
 
-  const metaInHead = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
-  const metaTags = metaInHead ? (metaInHead[1].match(/<meta\b/gi) || []).length : 0;
-  if (metaTags !== 1) {
-    issues.push(
-      `Expected one <meta> inside <head> (like sampleWorkingHtml). Found ${metaTags}. Extra meta tags confuse strict XML parsers.`
-    );
-  } else if (!/<meta\s+charset="UTF-8"\s*\/?>/i.test(html)) {
-    issues.push('<meta charset="UTF-8"/> is missing or not in expected form.');
+  if (/src="data:image/i.test(html)) {
+    issues.push('Base64 data: images found — use logo.png or CONTRACT_LOGO_URL for iText 5.');
   } else {
-    ok.push('Single <meta charset="UTF-8"/> in <head>.');
-  }
-
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  if (!bodyMatch) {
-    issues.push('Missing <body>...</body>.');
-  } else {
-    const body = bodyMatch[1];
-    if (/<head\b|<html\b|<!DOCTYPE/i.test(body)) {
-      issues.push(
-        'Body contains <head>, <html>, or <!DOCTYPE> — never nest a full document inside body.'
-      );
-    } else {
-      ok.push('Body has no nested document tags.');
-    }
-    if (/<meta\b/i.test(body)) {
-      issues.push('Body contains <meta> — meta must only appear in <head>.');
-    }
+    ok.push('No base64 image URIs.');
   }
 
   if (/role="presentation"/i.test(html)) {
-    issues.push('Found role="presentation" tables (email layout). PDF sample uses plain tables/divs.');
+    issues.push('Email-style role="presentation" tables found.');
   } else {
-    ok.push('No email-style presentation tables.');
+    ok.push('No presentation-role tables.');
   }
 
-  if (!/<style[\s\S]*<\/style>/i.test(html)) {
-    issues.push('Missing embedded <style> block.');
+  if (!/table\.outer/i.test(html) && !/class="outer"/i.test(html)) {
+    issues.push('Missing outer layout table (iText container).');
   } else {
-    ok.push('Embedded <style> present.');
+    ok.push('Outer layout table present.');
+  }
+
+  if (!/font-family:\s*Tahoma/i.test(html)) {
+    issues.push('Expected font-family: Tahoma (single PDF font).');
+  } else if (/sans-serif|googleapis|@font-face/i.test(html)) {
+    issues.push('Remove font stacks, web fonts, or @font-face.');
+  } else {
+    ok.push('Tahoma font declaration.');
+  }
+
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  if (bodyMatch && /<head\b|<html\b|<!DOCTYPE/i.test(bodyMatch[1])) {
+    issues.push('Nested document tags inside <body>.');
+  } else if (bodyMatch) {
+    ok.push('No nested html/head in body.');
   }
 
   const nestedHeadRisk =
-    'If createPdfFile still fails with "nested tag head": your API must pass this file AS the ' +
-    'entire HTML string, not inside another <html><head>...</head><body> template.';
+    'Pass the full contract.html string to XMLWorker without wrapping in another <html><head>.';
 
   return { ok, issues, nestedHeadRisk, pass: issues.length === 0 };
 }
 
 function main() {
   const result = validatePdfHtml();
-  console.log('PDF HTML validation:', OUTPUT_HTML);
+  console.log('iText 5 HTML validation:', OUTPUT_HTML);
   console.log('');
   for (const line of result.ok) {
     console.log('  OK:', line);
@@ -96,7 +105,11 @@ function main() {
   console.log('');
   console.log('Note:', result.nestedHeadRisk);
   console.log('');
-  console.log(result.pass ? 'Result: PASS — safe to send contract.html to createPdfFile.' : 'Result: FAIL — fix issues above.');
+  console.log(
+    result.pass
+      ? 'Result: PASS — suitable for iText 5 XMLWorker.'
+      : 'Result: FAIL — fix issues above.'
+  );
   process.exit(result.pass ? 0 : 1);
 }
 

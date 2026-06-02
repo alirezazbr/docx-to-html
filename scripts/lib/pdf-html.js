@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { CONTRACT_CSS_PDF } = require('./paths');
+const { ITEXT_COMPAT_COMMENT, sanitizeBodyForItext } = require('./itext-html');
 
 let cachedCss = null;
 
@@ -18,24 +19,29 @@ function getPdfCss() {
   return cachedCss;
 }
 
+/** Outer table wraps content — replaces max-width/auto-margin div container for XMLWorker. */
 function wrapContractBody(innerHtml) {
-  if (/class="container"/i.test(innerHtml)) {
-    return innerHtml;
+  if (/class="outer"/i.test(innerHtml)) {
+    return sanitizeBodyForItext(innerHtml);
   }
-  return `<div class="container contract-box">\n${innerHtml}\n</div>`;
+  const inner = sanitizeBodyForItext(innerHtml);
+  return `<table class="outer" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td class="contract-box">
+${inner}
+</td>
+</tr>
+</table>`;
 }
 
-/**
- * Full HTML document matching Tamin PDF parser expectations
- * (see input/sampleWorkingHtml.html).
- */
 function buildPdfDocument({ body, title }) {
   const css = getPdfCss();
 
   return `<!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html dir="rtl" lang="fa">
+${ITEXT_COMPAT_COMMENT}
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"></meta>
 <title>${escapeHtml(title)}</title>
 <style>
 ${css}
@@ -50,9 +56,6 @@ ${body}
 function normalizeDocxHtml(html) {
   let out = html;
 
-  out = out.replace(/<a\s+id="[^"]*"\s*>\s*<\/a>/gi, '');
-  out = out.replace(/<a\s+id="[^"]*"\s*\/>/gi, '');
-
   out = out.replace(/<table(\s[^>]*)?>/gi, (match, attrs = '') => {
     if (/class="contract-table"/i.test(match)) {
       return match;
@@ -60,13 +63,10 @@ function normalizeDocxHtml(html) {
     if (/class="/i.test(match)) {
       return match.replace(/\bclass="/i, 'class="contract-table ');
     }
-    return `<table class="contract-table"${attrs}>`;
+    return `<table class="contract-table" width="100%" cellpadding="6" cellspacing="0"${attrs}>`;
   });
 
-  out = out.replace(/\srole="presentation"/gi, '');
-  out = out.replace(/\sstyle="[^"]*"/gi, '');
-
-  return out;
+  return sanitizeBodyForItext(out);
 }
 
 function buildContractHtml(body, title = 'قرارداد بیمه اصحاب فرهنگ و هنر') {

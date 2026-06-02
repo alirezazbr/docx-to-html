@@ -1,4 +1,5 @@
 const { normalizeDocxHtml } = require('./lib/pdf-html');
+const { buildLogoImg, sanitizeBodyForItext } = require('./lib/itext-html');
 
 function parseTopLevelBlocks(html) {
   const blocks = [];
@@ -20,12 +21,14 @@ function stripTags(html) {
 
 function extractLogoAndMeta(inner) {
   const imgMatch = inner.match(/<img[^>]*>/i);
-  let logo = '';
+  let logo = buildLogoImg();
   if (imgMatch) {
     const tag = imgMatch[0];
     const srcMatch = tag.match(/\bsrc="([^"]*)"/i);
     const src = srcMatch ? srcMatch[1] : '';
-    logo = `<img src="${src}" alt="لوگو" class="logo"/>`;
+    if (src && !/^data:/i.test(src)) {
+      logo = buildLogoImg(src);
+    }
   }
   const metaInner = imgMatch ? inner.replace(imgMatch[0], '').trim() : inner.trim();
   return { logo, metaInner };
@@ -58,15 +61,19 @@ function enhanceDocxHtml(html) {
 
   const termBlocks =
     notesStart === -1 ? [] : blocks.slice(notesStart, notesEnd);
-  const termsHtml = termBlocks
+  const termsRows = termBlocks
     .map((b, i) => {
       if (i === 0 && /توضیحات/.test(stripTags(b.inner))) {
         return '';
       }
-      return `<div class="term-item">${b.inner}</div>`;
+      return `<tr><td class="term-item">${b.inner}</td></tr>`;
     })
     .filter(Boolean)
     .join('\n');
+
+  const termsHtml = termsRows
+    ? `<table class="terms-table" width="100%" border="0" cellpadding="0" cellspacing="0">\n${termsRows}\n</table>`
+    : '';
 
   const tableHtml =
     tableIndex === -1 ? '' : normalizeDocxHtml(blocks[tableIndex].html);
@@ -82,30 +89,35 @@ function enhanceDocxHtml(html) {
         );
 
   const footerHtml = afterTableHtml
-    ? `<div class="content">\n${afterTableHtml}\n</div>`
+    ? `<table class="layout-table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr><td class="content">${afterTableHtml}</td></tr>
+</table>`
     : '';
 
-  return `<div class="header-top">
-<table>
+  const body = `<!-- iText 5: header row table (replaces flex/div header-top) -->
+<table class="header-table" width="100%" border="0" cellpadding="4" cellspacing="0">
 <tr>
-<td style="width:25%;"></td>
-<td style="width:50%;text-align:center;">${logo}</td>
-<td style="width:25%;" class="meta-info">
+<td width="25%">&nbsp;</td>
+<td width="50%" align="center">${logo}</td>
+<td width="25%" align="right" class="meta-info">
 <div>${metaInner}</div>
 <div>${numberInner}</div>
 </td>
 </tr>
 </table>
-</div>
-<div class="title-section">
-<div class="main-title">${titleInner}</div>
-</div>
-<div class="content">
-${bodyHtml}
-</div>
-${termsHtml ? `<div class="terms">\n${termsHtml}\n</div>` : ''}
+<!-- iText 5: title row table -->
+<table class="layout-table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr><td align="center" class="main-title">${titleInner}</td></tr>
+</table>
+<!-- iText 5: main contract body -->
+<table class="layout-table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr><td class="content">${bodyHtml}</td></tr>
+</table>
+${termsHtml}
 ${tableHtml}
 ${footerHtml}`;
+
+  return sanitizeBodyForItext(body);
 }
 
 module.exports = { enhanceDocxHtml };

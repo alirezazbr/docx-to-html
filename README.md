@@ -71,11 +71,13 @@ pnpm run build:docx
 pnpm run validate:pdf
 ```
 
+`contract.html` is refactored for **iText 5 XMLWorker** (table layout, safe CSS, `logo.png` by default, XHTML meta).
+
 Optional env vars:
 
-- `CONTRACT_LOGO_URL=https://...` — logo URL instead of huge base64
-- `CONTRACT_EMBED_IMAGES=0` — skip embedded images (use with `CONTRACT_LOGO_URL`)
-- `CONTRACT_WRITE_FRAGMENT=1` — also write `contract-fragment.html` (only if your API adds its own `<html>` shell)
+- `CONTRACT_LOGO_URL=logo.png` — image path/URL for `<img class="logo">` (default: `logo.png`)
+- `CONTRACT_EMBED_IMAGES=1` — embed DOCX images as base64 (not recommended for iText)
+- `CONTRACT_WRITE_FRAGMENT=1` — also write `contract-fragment.html`
 
 ## JSON + Handlebars workflow
 
